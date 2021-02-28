@@ -74,13 +74,13 @@ public class RegistrationService {
     public DefaultResponse restore(String email) {
         DefaultResponse response = new DefaultResponse();
         if(userRepository.findByEmail(email).isPresent()) {
-            MailSender mailSender = new MailSender("test", "test");
+            MailSender mailSender = new MailSender("sobaka834@gmail.com", "Polina123");
             User user = userRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("not found"));
             String code = new BigInteger(200, new Random()).toString(32);
             user.setCode(code);
             userRepository.save(user);
             response.setResult(true);
-            mailSender.send("Восстановление пароля", "Ссылка для восстановаления пароля: http://localhost:8080/login/change-password/" + code, "sobaka834@gmail.com", email);
+            mailSender.send("Восстановление пароля", "Ссылка для восстановаления пароля: https://blogalexbukalo.herokuapp.com/" + code, "sobaka834@gmail.com", email);
         } else response.setResult(false);
 
         return response;
