@@ -1,0 +1,13 @@
+spring.datasource.url: jdbc:${CLEARDB_DATABASE_URL:mysql://localhost:3306/blogsite?useUnicode=true&serverTimezone=UTC}
+spring.datasource.username: root
+spring.datasource.password: Lampo4ka
+spring.jpa.hibernate.ddl-auto: none
+spring.liquibase.change-log: classpath:/db/changelog/change-log.xml
+server.port: ${PORT:8080}
+
+blog.title: DevBlog
+blog.subtitle: Рассказы обо всем
+blog.phone: +7 (999) 999-99-99
+blog.email: alexbukalo@icloud.com
+blog.copyright: Алексей Букало
+blog.copyrightFrom: 2020
