@@ -74,7 +74,7 @@ public class RegistrationService {
     public DefaultResponse restore(String email) {
         DefaultResponse response = new DefaultResponse();
         if(userRepository.findByEmail(email).isPresent()) {
-            MailSender mailSender = new MailSender("sobaka834@gmail.com", "Polina123");
+            MailSender mailSender = new MailSender("sobaka834@gmail.com", "Baradavo4nik");
             User user = userRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("not found"));
             String code = new BigInteger(200, new Random()).toString(32);
             user.setCode(code);

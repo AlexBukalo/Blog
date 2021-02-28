@@ -23,6 +23,7 @@ import org.springframework.data.jpa.domain.JpaSort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.security.Principal;
 import java.sql.Timestamp;
@@ -51,23 +52,23 @@ public class PostService {
 
 
     public CountPosts getPosts(int offset, int limit, Mode mode) {
-        Pageable pageable = null;
+        Pageable pageable;
         Page<Post> posts = null;
         switch (mode) {
             case recent:
-                pageable = PageRequest.of(offset, limit, JpaSort.unsafe(Sort.Direction.DESC, "time"));
+                pageable = PageRequest.of(offset / 10, limit, JpaSort.unsafe(Sort.Direction.DESC, "time"));
                 posts = postRepository.findPosts(pageable);
                 break;
             case popular:
-                pageable = PageRequest.of(offset, limit);
+                pageable = PageRequest.of(offset / 10, limit);
                 posts = postRepository.findPostsOrderByComments(pageable);
                 break;
             case best:
-                pageable = PageRequest.of(offset, limit);
+                pageable = PageRequest.of(offset / 10, limit);
                 posts = postRepository.findPostsOrderByLikes(pageable);
                 break;
             case early:
-                pageable = PageRequest.of(offset, limit, JpaSort.unsafe(Sort.Direction.ASC, "time"));
+                pageable = PageRequest.of(offset / 10, limit, JpaSort.unsafe(Sort.Direction.ASC, "time"));
                 posts = postRepository.findPosts(pageable);
                 break;
         }
@@ -76,7 +77,7 @@ public class PostService {
     }
 
     public CountPosts getPostsByQuery(int offset, int limit, String query) {
-        Pageable pageable = PageRequest.of(offset, limit);
+        Pageable pageable = PageRequest.of(offset / 10, limit);
         if (query.equals("")) {
             return mapPosts(postRepository.findAllPosts(pageable));
         } else
@@ -84,17 +85,17 @@ public class PostService {
     }
 
     public CountPosts getPostsByTag(int offset, int limit, String tag) {
-        Pageable pageable = PageRequest.of(offset, limit);
+        Pageable pageable = PageRequest.of(offset / 10, limit);
         return mapPosts(postRepository.findPostsByTag(tag, pageable));
     }
 
     public CountPosts getPostsByDate(int offset, int limit, String date) {
-        Pageable pageable = PageRequest.of(offset, limit);
+        Pageable pageable = PageRequest.of(offset / 10, limit);
         return mapPosts(postRepository.findPostsByDate(date, pageable));
     }
 
     public CountPosts getMyPosts(int offset, int limit, String status, Principal principal) {
-        Pageable pageable = PageRequest.of(offset, limit);
+        Pageable pageable = PageRequest.of(offset / 10, limit);
         Page<Post> posts = null;
 
         User user = userRepository.findByEmail(principal.getName())
@@ -300,32 +301,35 @@ public class PostService {
     }
 
     public Statistics statisticsMy(org.springframework.security.core.userdetails.User user) {
-        User userDB = userRepository.findByEmail(user.getUsername())
-                .orElseThrow(() -> new UsernameNotFoundException("not found"));
-        List<Post> posts = postRepository.findAllPostsByUser(userDB.getId());
+        if(user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        } else {
+            User userDB = userRepository.findByEmail(user.getUsername())
+                    .orElseThrow(() -> new UsernameNotFoundException("not found"));
+            List<Post> posts = postRepository.findAllPostsByUser(userDB.getId());
 
-        int postsCount = 0;
-        int likesCount = 0;
-        int dislikesCount = 0;
-        int viewsCount = 0;
-        long firstPublication = Long.MAX_VALUE;
+            int postsCount = 0;
+            int likesCount = 0;
+            int dislikesCount = 0;
+            int viewsCount = 0;
+            long firstPublication = Long.MAX_VALUE;
 
-        for (Post post : posts) {
-            postsCount++;
-            viewsCount = +post.getViewCount();
-            List<PostVote> postVotes = post.getPostVote();
-            if (postVotes != null) {
-                for (PostVote postVote : postVotes) {
-                    if (postVote.getValue() == 1) likesCount++;
-                    if (postVote.getValue() == -1) dislikesCount++;
+            for (Post post : posts) {
+                postsCount++;
+                viewsCount += post.getViewCount();
+                List<PostVote> postVotes = post.getPostVote();
+                if (postVotes != null) {
+                    for (PostVote postVote : postVotes) {
+                        if (postVote.getValue() == 1) likesCount++;
+                        if (postVote.getValue() == -1) dislikesCount++;
+                    }
+                }
+                if (firstPublication > post.getTime().getTime() / 1000) {
+                    firstPublication = post.getTime().getTime() / 1000;
                 }
             }
-            if (firstPublication > post.getTime().getTime() / 1000) {
-                firstPublication = post.getTime().getTime() / 1000;
-            }
+            return new Statistics(postsCount, likesCount, dislikesCount, viewsCount, firstPublication);
         }
-
-        return new Statistics(postsCount, likesCount, dislikesCount, viewsCount, firstPublication);
     }
 
     public Object statisticsAll(org.springframework.security.core.userdetails.User user) {
@@ -341,13 +345,13 @@ public class PostService {
         long firstPublication = Long.MAX_VALUE;
 
         if (userDB.getIsModerator() == 0 && settings.getValue().equals("NO")) {
-            return new ForbiddenException();
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         } else {
             List<Post> posts = postRepository.findAllPosts();
 
             for (Post post : posts) {
                 postsCount++;
-                viewsCount = +post.getViewCount();
+                viewsCount += post.getViewCount();
                 List<PostVote> postVotes = post.getPostVote();
                 if (postVotes != null) {
                     for (PostVote postVote : postVotes) {
@@ -368,21 +372,25 @@ public class PostService {
     public DefaultResponse like(VoteRequest request, org.springframework.security.core.userdetails.User user, int value) {
         DefaultResponse defaultResponse = new DefaultResponse();
 
-        User userDB = userRepository.findByEmail(user.getUsername())
-                .orElseThrow(() -> new UsernameNotFoundException("not found"));
+        if(user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        } else {
+            User userDB = userRepository.findByEmail(user.getUsername())
+                    .orElseThrow(() -> new UsernameNotFoundException("not found"));
 
-        if (postVoteRepository.getPostVote(postRepository.findById(request.getPostId()).get(), value).isEmpty()) {
-            if (postVoteRepository.getPostVote(postRepository.findById(request.getPostId()).get(), -value).isPresent()) {
-                postVoteRepository.delete(postVoteRepository.getPostVote(postRepository.findById(request.getPostId()).get(), -value).get());
-            }
-            PostVote postVote = new PostVote();
-            postVote.setPost(postRepository.findById(request.getPostId()).get());
-            postVote.setTime(new Timestamp(System.currentTimeMillis()));
-            postVote.setUser(userDB);
-            postVote.setValue(value);
-            defaultResponse.setResult(true);
-            postVoteRepository.save(postVote);
-        } else defaultResponse.setResult(false);
+            if (postVoteRepository.getPostVote(postRepository.findById(request.getPostId()).get(), value).isEmpty()) {
+                if (postVoteRepository.getPostVote(postRepository.findById(request.getPostId()).get(), -value).isPresent()) {
+                    postVoteRepository.delete(postVoteRepository.getPostVote(postRepository.findById(request.getPostId()).get(), -value).get());
+                }
+                PostVote postVote = new PostVote();
+                postVote.setPost(postRepository.findById(request.getPostId()).get());
+                postVote.setTime(new Timestamp(System.currentTimeMillis()));
+                postVote.setUser(userDB);
+                postVote.setValue(value);
+                defaultResponse.setResult(true);
+                postVoteRepository.save(postVote);
+            } else defaultResponse.setResult(false);
+        }
 
         return defaultResponse;
     }

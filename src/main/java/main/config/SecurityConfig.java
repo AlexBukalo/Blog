@@ -33,11 +33,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .csrf().disable()
                 .authorizeRequests()
                 .antMatchers("/api/post/moderation", "/api/post/my"
-                        , "/api/image", "/api/comment", "/api/moderation","/api/profile/my", "/api/statistics/my"
-                        , "/api/post/like", "/api/post/dislike", "/api/auth/logout")
+                        , "/api/image", "/api/comment", "/api/moderation","/api/profile/my", "/api/statistics/my",
+                        "/api/auth/logout")
                 .authenticated()
-                .antMatchers(HttpMethod.POST, "/api/post", "/api/image", "/api/profile/my",
-                         "/api/post/like", "/api/post/dislike")
+                .antMatchers(HttpMethod.POST, "/api/post", "/api/image", "/api/profile/my")
                 .authenticated()
                 .antMatchers(HttpMethod.POST, "/api/moderation").hasAnyRole(String.valueOf(Permission.MODERATE))
                 .antMatchers(HttpMethod.PUT, "/api/post/{ID}")
