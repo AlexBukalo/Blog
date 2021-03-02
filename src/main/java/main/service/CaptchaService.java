@@ -48,7 +48,7 @@ public class CaptchaService {
     }
 
     //Time in milliseconds
-    @Scheduled(fixedRate = 5000)
+    @Scheduled(fixedRate = 50000000)
     public void deleteCaptchaScheduled() {
         deleteCaptcha();
     }

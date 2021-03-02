@@ -15,7 +15,8 @@ import java.util.List;
 
 
 @Repository
-public interface PostRepository extends JpaRepository<Post, Long> {
+public interface
+PostRepository extends JpaRepository<Post, Long> {
     @Query("SELECT p " +
             "FROM Post p " +
             "LEFT JOIN User u ON u.id = p.user " +
@@ -50,11 +51,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("SELECT p " +
             "FROM Post p " +
             "LEFT JOIN User u ON u.id = p.user " +
-            "LEFT JOIN PostComment pc ON pc.post = p.id " +
             "LEFT JOIN PostVote pvl on pvl.post = p.id and pvl.value = 1 " +
             "WHERE p.isActive = 1 AND p.status = 'ACCEPTED' AND p.time <= current_time() " +
             "GROUP BY p.id " +
-            "ORDER BY COUNT(pvl) DESC"
+            "ORDER BY COUNT(pvl.value) DESC"
     )
     Page<Post> findPostsOrderByLikes(Pageable pageable);
 

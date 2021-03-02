@@ -12,8 +12,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigInteger;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -74,13 +72,13 @@ public class RegistrationService {
     public DefaultResponse restore(String email) {
         DefaultResponse response = new DefaultResponse();
         if(userRepository.findByEmail(email).isPresent()) {
-            MailSender mailSender = new MailSender("sobaka834@gmail.com", "Baradavo4nik");
+            MailSender mailSender = new MailSender("test@test.ru", "test");
             User user = userRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("not found"));
             String code = new BigInteger(200, new Random()).toString(32);
             user.setCode(code);
             userRepository.save(user);
             response.setResult(true);
-            mailSender.send("Восстановление пароля", "Ссылка для восстановаления пароля: https://blogalexbukalo.herokuapp.com/" + code, "sobaka834@gmail.com", email);
+            mailSender.send("Восстановление пароля", "Ссылка для восстановаления пароля: https://blogalexbukalo.herokuapp.com/login/change-password/" + code, "sobaka834@gmail.com", email);
         } else response.setResult(false);
 
         return response;

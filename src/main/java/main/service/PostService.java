@@ -213,7 +213,9 @@ public class PostService {
             post.setAnnounce(postRequest.getText().replaceAll("<[^>]*>","").substring(0, 25).replace("&nbsp;"," ")
                     + "...");
             post.setUser(userDB);
-            post.setStatus(Post.ModerationStatus.NEW);
+            if(settingsRepository.getModeration().getValue().equals("NO")) {
+                post.setStatus(Post.ModerationStatus.ACCEPTED);
+            } else post.setStatus(Post.ModerationStatus.NEW);
             post.setTitle(postRequest.getTitle());
             post.setViewCount(0);
             if (postRequest.getTimestamp() < System.currentTimeMillis()) {
@@ -378,9 +380,11 @@ public class PostService {
             User userDB = userRepository.findByEmail(user.getUsername())
                     .orElseThrow(() -> new UsernameNotFoundException("not found"));
 
-            if (postVoteRepository.getPostVote(postRepository.findById(request.getPostId()).get(), value).isEmpty()) {
-                if (postVoteRepository.getPostVote(postRepository.findById(request.getPostId()).get(), -value).isPresent()) {
-                    postVoteRepository.delete(postVoteRepository.getPostVote(postRepository.findById(request.getPostId()).get(), -value).get());
+            if (postVoteRepository.getPostVote(postRepository.findById(request.getPostId()).get(), value, userDB).isPresent()) {
+                defaultResponse.setResult(false);
+            } else {
+                if (postVoteRepository.getPostVote(postRepository.findById(request.getPostId()).get(), -value, userDB).isPresent()) {
+                    postVoteRepository.delete(postVoteRepository.getPostVote(postRepository.findById(request.getPostId()).get(), -value, userDB).get());
                 }
                 PostVote postVote = new PostVote();
                 postVote.setPost(postRepository.findById(request.getPostId()).get());
@@ -389,7 +393,7 @@ public class PostService {
                 postVote.setValue(value);
                 defaultResponse.setResult(true);
                 postVoteRepository.save(postVote);
-            } else defaultResponse.setResult(false);
+            }
         }
 
         return defaultResponse;

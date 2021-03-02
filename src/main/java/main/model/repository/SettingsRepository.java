@@ -10,4 +10,7 @@ public interface SettingsRepository extends CrudRepository<GlobalSettings, Long>
 
     @Query("FROM GlobalSettings WHERE code = 'STATISTICS_IS_PUBLIC'")
     GlobalSettings getStatistics();
+
+    @Query("FROM GlobalSettings WHERE code = 'POST_PREMODERATION'")
+    GlobalSettings getModeration();
 }
